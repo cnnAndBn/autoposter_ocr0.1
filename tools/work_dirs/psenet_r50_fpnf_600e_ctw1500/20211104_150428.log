@@ -1,0 +1,261 @@
+2021-11-04 15:04:28,798 - mmocr - INFO - Environment info:
+------------------------------------------------------------
+sys.platform: linux
+Python: 3.7.9 (default, Aug 31 2020, 12:42:55) [GCC 7.3.0]
+CUDA available: True
+GPU 0,1: GeForce GTX 1080 Ti
+CUDA_HOME: /usr/local/cuda
+NVCC: Cuda compilation tools, release 10.1, V10.1.168
+GCC: gcc (Ubuntu 7.5.0-3ubuntu1~18.04) 7.5.0
+PyTorch: 1.5.1+cu101
+PyTorch compiling details: PyTorch built with:
+  - GCC 7.3
+  - C++ Version: 201402
+  - Intel(R) Math Kernel Library Version 2019.0.5 Product Build 20190808 for Intel(R) 64 architecture applications
+  - Intel(R) MKL-DNN v0.21.1 (Git Hash 7d2fd500bc78936d1d648ca713b901012f470dbc)
+  - OpenMP 201511 (a.k.a. OpenMP 4.5)
+  - NNPACK is enabled
+  - CPU capability usage: AVX2
+  - CUDA Runtime 10.1
+  - NVCC architecture flags: -gencode;arch=compute_37,code=sm_37;-gencode;arch=compute_50,code=sm_50;-gencode;arch=compute_60,code=sm_60;-gencode;arch=compute_61,code=sm_61;-gencode;arch=compute_70,code=sm_70;-gencode;arch=compute_75,code=sm_75;-gencode;arch=compute_37,code=compute_37
+  - CuDNN 7.6.3
+  - Magma 2.5.2
+  - Build settings: BLAS=MKL, BUILD_TYPE=Release, CXX_FLAGS= -Wno-deprecated -fvisibility-inlines-hidden -fopenmp -DNDEBUG -DUSE_FBGEMM -DUSE_QNNPACK -DUSE_PYTORCH_QNNPACK -DUSE_XNNPACK -DUSE_INTERNAL_THREADPOOL_IMPL -O2 -fPIC -Wno-narrowing -Wall -Wextra -Werror=return-type -Wno-missing-field-initializers -Wno-type-limits -Wno-array-bounds -Wno-unknown-pragmas -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wno-unused-result -Wno-strict-overflow -Wno-strict-aliasing -Wno-error=deprecated-declarations -Wno-stringop-overflow -Wno-error=pedantic -Wno-error=redundant-decls -Wno-error=old-style-cast -fdiagnostics-color=always -faligned-new -Wno-unused-but-set-variable -Wno-maybe-uninitialized -fno-math-errno -fno-trapping-math -Werror=format -Wno-stringop-overflow, PERF_WITH_AVX=1, PERF_WITH_AVX2=1, PERF_WITH_AVX512=1, USE_CUDA=ON, USE_EXCEPTION_PTR=1, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_MKL=ON, USE_MKLDNN=ON, USE_MPI=OFF, USE_NCCL=ON, USE_NNPACK=ON, USE_OPENMP=ON, USE_STATIC_DISPATCH=OFF, 
+
+TorchVision: 0.6.1+cu101
+OpenCV: 4.4.0
+MMCV: 1.2.4
+MMCV Compiler: GCC 7.3
+MMCV CUDA Compiler: 10.1
+MMOCR: 0.1.0+
+------------------------------------------------------------
+
+2021-11-04 15:04:29,350 - mmocr - INFO - Distributed training: False
+2021-11-04 15:04:29,900 - mmocr - INFO - Config:
+model = dict(
+    type='PSENet',
+    pretrained='torchvision://resnet50',
+    backbone=dict(
+        type='ResNet',
+        depth=50,
+        num_stages=4,
+        out_indices=(0, 1, 2, 3),
+        frozen_stages=-1,
+        norm_cfg=dict(type='SyncBN', requires_grad=True),
+        norm_eval=True,
+        style='caffe'),
+    neck=dict(
+        type='FPNF',
+        in_channels=[256, 512, 1024, 2048],
+        out_channels=256,
+        fusion_type='concat'),
+    bbox_head=dict(
+        type='PSEHead',
+        text_repr_type='poly',
+        in_channels=[256],
+        out_channels=7,
+        loss=dict(type='PSELoss')),
+    train_cfg=None,
+    test_cfg=None)
+dataset_type = 'IcdarDataset'
+data_root = '/media/yons/myspace1/dataset/OcrDataset/CTW1500/'
+img_norm_cfg = dict(
+    mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
+train_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(
+        type='LoadTextAnnotations',
+        with_bbox=True,
+        with_mask=True,
+        poly2mask=False),
+    dict(type='ColorJitter', brightness=0.12549019607843137, saturation=0.5),
+    dict(
+        type='Normalize',
+        mean=[123.675, 116.28, 103.53],
+        std=[58.395, 57.12, 57.375],
+        to_rgb=True),
+    dict(
+        type='ScaleAspectJitter',
+        img_scale=[(3000, 736)],
+        ratio_range=(0.5, 3),
+        aspect_ratio_range=(1, 1),
+        multiscale_mode='value',
+        long_size_bound=1280,
+        short_size_bound=640,
+        resize_type='long_short_bound',
+        keep_ratio=False),
+    dict(type='PSENetTargets'),
+    dict(type='RandomFlip', flip_ratio=0.5, direction='horizontal'),
+    dict(type='RandomRotateTextDet'),
+    dict(
+        type='RandomCropInstances',
+        target_size=(640, 640),
+        instance_key='gt_kernels'),
+    dict(type='Pad', size_divisor=32),
+    dict(
+        type='CustomFormatBundle',
+        keys=['gt_kernels', 'gt_mask'],
+        visualize=dict(flag=False, boundary_key='gt_kernels')),
+    dict(type='Collect', keys=['img', 'gt_kernels', 'gt_mask'])
+]
+test_pipeline = [
+    dict(type='LoadImageFromFile'),
+    dict(
+        type='MultiScaleFlipAug',
+        img_scale=(1280, 1280),
+        flip=False,
+        transforms=[
+            dict(type='Resize', img_scale=(1280, 1280), keep_ratio=True),
+            dict(
+                type='Normalize',
+                mean=[123.675, 116.28, 103.53],
+                std=[58.395, 57.12, 57.375],
+                to_rgb=True),
+            dict(type='Pad', size_divisor=32),
+            dict(type='ImageToTensor', keys=['img']),
+            dict(type='Collect', keys=['img'])
+        ])
+]
+data = dict(
+    samples_per_gpu=2,
+    workers_per_gpu=2,
+    train=dict(
+        type='IcdarDataset',
+        ann_file=
+        '/media/yons/myspace1/dataset/OcrDataset/CTW1500/json_style/instances_training.json',
+        img_prefix='/media/yons/myspace1/dataset/OcrDataset/CTW1500//imgs',
+        pipeline=[
+            dict(type='LoadImageFromFile'),
+            dict(
+                type='LoadTextAnnotations',
+                with_bbox=True,
+                with_mask=True,
+                poly2mask=False),
+            dict(
+                type='ColorJitter',
+                brightness=0.12549019607843137,
+                saturation=0.5),
+            dict(
+                type='Normalize',
+                mean=[123.675, 116.28, 103.53],
+                std=[58.395, 57.12, 57.375],
+                to_rgb=True),
+            dict(
+                type='ScaleAspectJitter',
+                img_scale=[(3000, 736)],
+                ratio_range=(0.5, 3),
+                aspect_ratio_range=(1, 1),
+                multiscale_mode='value',
+                long_size_bound=1280,
+                short_size_bound=640,
+                resize_type='long_short_bound',
+                keep_ratio=False),
+            dict(type='PSENetTargets'),
+            dict(type='RandomFlip', flip_ratio=0.5, direction='horizontal'),
+            dict(type='RandomRotateTextDet'),
+            dict(
+                type='RandomCropInstances',
+                target_size=(640, 640),
+                instance_key='gt_kernels'),
+            dict(type='Pad', size_divisor=32),
+            dict(
+                type='CustomFormatBundle',
+                keys=['gt_kernels', 'gt_mask'],
+                visualize=dict(flag=False, boundary_key='gt_kernels')),
+            dict(type='Collect', keys=['img', 'gt_kernels', 'gt_mask'])
+        ]),
+    val=dict(
+        type='IcdarDataset',
+        ann_file=
+        '/media/yons/myspace1/dataset/OcrDataset/CTW1500/json_style/instances_training.json',
+        img_prefix='/media/yons/myspace1/dataset/OcrDataset/CTW1500//imgs',
+        pipeline=[
+            dict(type='LoadImageFromFile'),
+            dict(
+                type='MultiScaleFlipAug',
+                img_scale=(1280, 1280),
+                flip=False,
+                transforms=[
+                    dict(
+                        type='Resize', img_scale=(1280, 1280),
+                        keep_ratio=True),
+                    dict(
+                        type='Normalize',
+                        mean=[123.675, 116.28, 103.53],
+                        std=[58.395, 57.12, 57.375],
+                        to_rgb=True),
+                    dict(type='Pad', size_divisor=32),
+                    dict(type='ImageToTensor', keys=['img']),
+                    dict(type='Collect', keys=['img'])
+                ])
+        ]),
+    test=dict(
+        type='IcdarDataset',
+        ann_file=
+        '/media/yons/myspace1/dataset/OcrDataset/CTW1500/json_style/instances_training.json',
+        img_prefix='/media/yons/myspace1/dataset/OcrDataset/CTW1500//imgs',
+        pipeline=[
+            dict(type='LoadImageFromFile'),
+            dict(
+                type='MultiScaleFlipAug',
+                img_scale=(1280, 1280),
+                flip=False,
+                transforms=[
+                    dict(
+                        type='Resize', img_scale=(1280, 1280),
+                        keep_ratio=True),
+                    dict(
+                        type='Normalize',
+                        mean=[123.675, 116.28, 103.53],
+                        std=[58.395, 57.12, 57.375],
+                        to_rgb=True),
+                    dict(type='Pad', size_divisor=32),
+                    dict(type='ImageToTensor', keys=['img']),
+                    dict(type='Collect', keys=['img'])
+                ])
+        ]))
+evaluation = dict(interval=10, metric='hmean-iou')
+optimizer = dict(type='Adam', lr=0.0001)
+optimizer_config = dict(grad_clip=None)
+lr_config = dict(policy='step', step=[200, 400])
+total_epochs = 600
+checkpoint_config = dict(interval=1)
+log_config = dict(interval=5, hooks=[dict(type='TextLoggerHook')])
+dist_params = dict(backend='nccl')
+log_level = 'INFO'
+load_from = None
+resume_from = None
+workflow = [('train', 1)]
+work_dir = './work_dirs/psenet_r50_fpnf_600e_ctw1500'
+gpu_ids = range(0, 1)
+
+2021-11-04 15:04:31,285 - mmocr - INFO - Start running, host: yons@yons-MS-7C22, work_dir: /home/yons/workspace/mmlab/mmocr_0.1/tools/work_dirs/psenet_r50_fpnf_600e_ctw1500
+2021-11-04 15:04:31,285 - mmocr - INFO - workflow: [('train', 1)], max: 600 epochs
+2021-11-04 15:04:35,263 - mmocr - INFO - Epoch [1][5/501]	lr: 1.000e-04, eta: 2 days, 18:20:38, time: 0.795, data_time: 0.607, memory: 3125, loss_text: 0.3153, loss_kernel: 0.1701, loss: 0.4854
+2021-11-04 15:04:36,815 - mmocr - INFO - Epoch [1][10/501]	lr: 1.000e-04, eta: 1 day, 22:07:53, time: 0.310, data_time: 0.133, memory: 3125, loss_text: 0.2606, loss_kernel: 0.1408, loss: 0.4014
+2021-11-04 15:04:39,345 - mmocr - INFO - Epoch [1][15/501]	lr: 1.000e-04, eta: 1 day, 20:50:14, time: 0.506, data_time: 0.321, memory: 3125, loss_text: 0.2986, loss_kernel: 0.1457, loss: 0.4442
+2021-11-04 15:04:40,742 - mmocr - INFO - Epoch [1][20/501]	lr: 1.000e-04, eta: 1 day, 15:27:18, time: 0.279, data_time: 0.099, memory: 3125, loss_text: 0.3907, loss_kernel: 0.2067, loss: 0.5974
+2021-11-04 15:04:43,719 - mmocr - INFO - Epoch [1][25/501]	lr: 1.000e-04, eta: 1 day, 17:30:24, time: 0.595, data_time: 0.413, memory: 3125, loss_text: 0.2721, loss_kernel: 0.1378, loss: 0.4099
+2021-11-04 15:04:45,337 - mmocr - INFO - Epoch [1][30/501]	lr: 1.000e-04, eta: 1 day, 15:05:30, time: 0.324, data_time: 0.145, memory: 3125, loss_text: 0.3237, loss_kernel: 0.1686, loss: 0.4924
+2021-11-04 15:04:46,773 - mmocr - INFO - Epoch [1][35/501]	lr: 1.000e-04, eta: 1 day, 12:56:06, time: 0.287, data_time: 0.108, memory: 3125, loss_text: 0.2790, loss_kernel: 0.1527, loss: 0.4317
+2021-11-04 15:04:48,728 - mmocr - INFO - Epoch [1][40/501]	lr: 1.000e-04, eta: 1 day, 12:23:45, time: 0.391, data_time: 0.211, memory: 3125, loss_text: 0.3070, loss_kernel: 0.1781, loss: 0.4851
+2021-11-04 15:04:50,093 - mmocr - INFO - Epoch [1][45/501]	lr: 1.000e-04, eta: 1 day, 10:53:00, time: 0.273, data_time: 0.091, memory: 3125, loss_text: 0.3165, loss_kernel: 0.1709, loss: 0.4875
+2021-11-04 15:04:51,421 - mmocr - INFO - Epoch [1][50/501]	lr: 1.000e-04, eta: 1 day, 9:36:40, time: 0.265, data_time: 0.085, memory: 3125, loss_text: 0.2930, loss_kernel: 0.1355, loss: 0.4285
+2021-11-04 15:04:52,990 - mmocr - INFO - Epoch [1][55/501]	lr: 1.000e-04, eta: 1 day, 8:56:13, time: 0.314, data_time: 0.131, memory: 3125, loss_text: 0.2883, loss_kernel: 0.1443, loss: 0.4326
+2021-11-04 15:04:54,856 - mmocr - INFO - Epoch [1][60/501]	lr: 1.000e-04, eta: 1 day, 8:47:14, time: 0.373, data_time: 0.195, memory: 3125, loss_text: 0.3546, loss_kernel: 0.1668, loss: 0.5213
+2021-11-04 15:04:56,305 - mmocr - INFO - Epoch [1][65/501]	lr: 1.000e-04, eta: 1 day, 8:07:33, time: 0.290, data_time: 0.110, memory: 3125, loss_text: 0.2864, loss_kernel: 0.1298, loss: 0.4162
+2021-11-04 15:04:58,024 - mmocr - INFO - Epoch [1][70/501]	lr: 1.000e-04, eta: 1 day, 7:52:53, time: 0.344, data_time: 0.161, memory: 3125, loss_text: 0.2397, loss_kernel: 0.1207, loss: 0.3604
+2021-11-04 15:04:59,588 - mmocr - INFO - Epoch [1][75/501]	lr: 1.000e-04, eta: 1 day, 7:29:45, time: 0.313, data_time: 0.132, memory: 3125, loss_text: 0.2348, loss_kernel: 0.1085, loss: 0.3433
+2021-11-04 15:05:03,064 - mmocr - INFO - Epoch [1][80/501]	lr: 1.000e-04, eta: 1 day, 9:09:11, time: 0.695, data_time: 0.518, memory: 3125, loss_text: 0.2549, loss_kernel: 0.1063, loss: 0.3612
+2021-11-04 15:05:04,167 - mmocr - INFO - Epoch [1][85/501]	lr: 1.000e-04, eta: 1 day, 8:17:17, time: 0.221, data_time: 0.033, memory: 3125, loss_text: 0.4048, loss_kernel: 0.2047, loss: 0.6095
+2021-11-04 15:05:05,754 - mmocr - INFO - Epoch [1][90/501]	lr: 1.000e-04, eta: 1 day, 7:57:49, time: 0.317, data_time: 0.137, memory: 3125, loss_text: 0.3319, loss_kernel: 0.1604, loss: 0.4923
+2021-11-04 15:05:06,813 - mmocr - INFO - Epoch [1][95/501]	lr: 1.000e-04, eta: 1 day, 7:12:47, time: 0.212, data_time: 0.033, memory: 3125, loss_text: 0.2487, loss_kernel: 0.1178, loss: 0.3665
+2021-11-04 15:05:08,717 - mmocr - INFO - Epoch [1][100/501]	lr: 1.000e-04, eta: 1 day, 7:14:22, time: 0.380, data_time: 0.197, memory: 3125, loss_text: 0.2021, loss_kernel: 0.0934, loss: 0.2955
+2021-11-04 15:05:10,720 - mmocr - INFO - Epoch [1][105/501]	lr: 1.000e-04, eta: 1 day, 7:20:40, time: 0.401, data_time: 0.222, memory: 3125, loss_text: 0.3033, loss_kernel: 0.1496, loss: 0.4529
+2021-11-04 15:05:12,599 - mmocr - INFO - Epoch [1][110/501]	lr: 1.000e-04, eta: 1 day, 7:20:39, time: 0.376, data_time: 0.192, memory: 3125, loss_text: 0.2789, loss_kernel: 0.1336, loss: 0.4125
+2021-11-04 15:05:13,702 - mmocr - INFO - Epoch [1][115/501]	lr: 1.000e-04, eta: 1 day, 6:46:54, time: 0.221, data_time: 0.040, memory: 3125, loss_text: 0.2504, loss_kernel: 0.1302, loss: 0.3806
+2021-11-04 15:05:15,540 - mmocr - INFO - Epoch [1][120/501]	lr: 1.000e-04, eta: 1 day, 6:46:36, time: 0.368, data_time: 0.188, memory: 3125, loss_text: 0.2912, loss_kernel: 0.1304, loss: 0.4216
+2021-11-04 15:05:17,054 - mmocr - INFO - Epoch [1][125/501]	lr: 1.000e-04, eta: 1 day, 6:33:25, time: 0.303, data_time: 0.124, memory: 3125, loss_text: 0.3285, loss_kernel: 0.1508, loss: 0.4792
+2021-11-04 15:05:19,352 - mmocr - INFO - Epoch [1][130/501]	lr: 1.000e-04, eta: 1 day, 6:51:23, time: 0.460, data_time: 0.278, memory: 3125, loss_text: 0.3823, loss_kernel: 0.1659, loss: 0.5482
+2021-11-04 15:05:21,383 - mmocr - INFO - Epoch [1][135/501]	lr: 1.000e-04, eta: 1 day, 6:58:06, time: 0.406, data_time: 0.228, memory: 3125, loss_text: 0.2266, loss_kernel: 0.0968, loss: 0.3234
+2021-11-04 15:05:23,057 - mmocr - INFO - Epoch [1][140/501]	lr: 1.000e-04, eta: 1 day, 6:51:34, time: 0.335, data_time: 0.157, memory: 3125, loss_text: 0.2239, loss_kernel: 0.1081, loss: 0.3320
