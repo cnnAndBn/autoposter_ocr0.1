@@ -55,7 +55,15 @@ train_pipeline = [
               dict(cls='Affine', rotate=[-10, 10]), ['Resize', [0.5, 3.0]]]),
     # random crop
     dict(type='EastRandomCrop', target_size=(640, 640)),
+
+    #DBNetTargets 构造函数参数
+    # shrink_ratio=0.4,
+    # thr_min=0.3,
+    # thr_max=0.7,
+    # min_short_size=8
     dict(type='DBNetTargets', shrink_ratio=0.4),
+
+
     dict(type='Pad', size_divisor=32),
     # for visualizing img and gts, pls set visualize = True
     dict(
