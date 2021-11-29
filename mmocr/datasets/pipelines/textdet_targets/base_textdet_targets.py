@@ -91,7 +91,7 @@ class BaseTextDetTargets:
                          max_shrink=sys.maxsize,
                          ignore_tags=None):
         """Generate text instance kernels for one shrink ratio.
-
+           返回一个shrink ratio下的kernel图
         Args:
             img_size (tuple(int, int)): The image size of (height, width).
             text_polys (list[list[ndarray]]: The list of text polygons.
@@ -107,7 +107,7 @@ class BaseTextDetTargets:
         h, w = img_size
         text_kernel = np.zeros((h, w), dtype=np.float32)
 
-        origin =  np.zeros((h, w), dtype=np.float32)
+        origin = np.zeros((h, w), dtype=np.float32)
 
         for text_ind, poly in enumerate(text_polys):
             instance = poly[0].reshape(-1, 2).astype(np.int32)
@@ -136,12 +136,15 @@ class BaseTextDetTargets:
                 continue
             # cv2.fillPoly(text_kernel, [shrinked.astype(np.int32)],
             #              text_ind + 1)   #最后一个参数是pixel value, 这里相当于给每个instance的mask上的所有像素设置为text_ind+1
+
+            #for debug
             cv2.fillPoly(text_kernel, [shrinked.astype(np.int32)],
                          255)  # 最后一个参数是pixel value？
-
             cv2.fillPoly(origin,[instance],255)
             cv2.imwrite('fillPoly.png',text_kernel)
             cv2.imwrite('origin.png',origin)
+
+
         return text_kernel, ignore_tags
 
     def generate_effective_mask(self, mask_size: tuple, polygons_ignore):
@@ -162,8 +165,7 @@ class BaseTextDetTargets:
         mask = np.ones(mask_size, dtype=np.uint8)
 
         for poly in polygons_ignore:
-            instance = poly[0].reshape(-1,
-                                       2).astype(np.int32).reshape(1, -1, 2)
+            instance = poly[0].reshape(-1,2).astype(np.int32).reshape(1, -1, 2)
             cv2.fillPoly(mask, instance, 0)
 
         return mask
