@@ -143,13 +143,13 @@ class DBNetTargets(BaseTextDetTargets):
         padding = pyclipper.PyclipperOffset()
         padding.AddPath(subject, pyclipper.JT_ROUND,
                         pyclipper.ET_CLOSEDPOLYGON)
-        padded_polygon = padding.Execute(distance)
+        padded_polygon = padding.Execute(distance)    #dilated后的polygon的坐标
         if len(padded_polygon) > 0:
             padded_polygon = np.array(padded_polygon[0])
         else:
             print(f'padding {polygon} with {distance} gets {padded_polygon}')
             padded_polygon = polygon.copy().astype(np.int32)
-        cv2.fillPoly(mask, [padded_polygon.astype(np.int32)], 1.0)
+        cv2.fillPoly(mask, [padded_polygon.astype(np.int32)], 1.0)          #mask：保存dilated区域，在dilated区域内为1，否则为0（坐标为原图大小坐标）
 
         x_min = padded_polygon[:, 0].min()
         x_max = padded_polygon[:, 0].max()
@@ -158,7 +158,7 @@ class DBNetTargets(BaseTextDetTargets):
         width = x_max - x_min + 1
         height = y_max - y_min + 1
 
-        polygon[:, 0] = polygon[:, 0] - x_min
+        polygon[:, 0] = polygon[:, 0] - x_min    #切换坐标原点
         polygon[:, 1] = polygon[:, 1] - y_min
 
         xs = np.broadcast_to(
@@ -168,11 +168,11 @@ class DBNetTargets(BaseTextDetTargets):
             np.linspace(0, height - 1, num=height).reshape(height, 1),
             (height, width))
 
-        distance_map = np.zeros((polygon.shape[0], height, width),
+        distance_map = np.zeros((polygon.shape[0], height, width),  #该polygon的外接矩形区域大小
                                 dtype=np.float32)
         for i in range(polygon.shape[0]):
             j = (i + 1) % polygon.shape[0]
-            absolute_distance = self.point2line(xs, ys, polygon[i], polygon[j])
+            absolute_distance = self.point2line(xs, ys, polygon[i], polygon[j])   #polygon保存的是原始polygon的坐标
             distance_map[i] = np.clip(absolute_distance / distance, 0, 1)
         distance_map = distance_map.min(axis=0)
 
@@ -201,7 +201,7 @@ class DBNetTargets(BaseTextDetTargets):
         polygons = results['gt_masks'].masks
         if 'bbox_fields' in results:
             results['bbox_fields'].clear()
-        ignore_tags = self.find_invalid(results)
+        ignore_tags = self.find_invalid(results)  # 返回是否要被ignore的list
         h, w, _ = results['img_shape']
 
         gt_shrink, ignore_tags = self.generate_kernels((h, w),
@@ -215,7 +215,7 @@ class DBNetTargets(BaseTextDetTargets):
         polygons = results['gt_masks'].masks
         polygons_ignore = results['gt_masks_ignore'].masks
 
-        gt_shrink_mask = self.generate_effective_mask((h, w), polygons_ignore)
+        gt_shrink_mask = self.generate_effective_mask((h, w), polygons_ignore)  #一个mask，属于ignore的区域pixel为0，否则为1
 
         gt_thr, gt_thr_mask = self.generate_thr_map((h, w), polygons)
 

@@ -23,8 +23,6 @@ model = dict(
         loss=dict(type='PSELoss')),
     train_cfg=None,
     test_cfg=None)
-train_cfg = None
-test_cfg = None
 dataset_type = 'IcdarDataset'
 data_root = '/media/yons/myspace1/dataset/OcrDataset/CTW1500/'
 img_norm_cfg = dict(
