@@ -43,10 +43,10 @@ train_pipeline = [
     dict(type='Normalize', **img_norm_cfg),
     dict(
         type='ScaleAspectJitter',
-        img_scale=[(3000, 736)],
+        img_scale=[(3000, 736)],      #resize_type设置成long_short_bound时，img_scale没有用
         ratio_range=(0.5, 3),
-        aspect_ratio_range=(1, 1),
-        multiscale_mode='value',
+        aspect_ratio_range=(1, 1),    #这里设置成保比例，文字是否可以不保持比例？
+        multiscale_mode='value',      #resize_type设置成long_short_bound时，multiscale_mode没有用
         long_size_bound=1280,
         short_size_bound=640,
         resize_type='long_short_bound',

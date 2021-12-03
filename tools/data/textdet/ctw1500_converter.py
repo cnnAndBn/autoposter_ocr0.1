@@ -140,7 +140,7 @@ def load_xml_info(gt_file, img_info):
             category_id = 1
             bbox = [int(x), int(y), int(w), int(h)]
 
-            coordinates = np.array(pts).reshape(-1, 2)
+            coordinates = np.array(pts).reshape(-1, 2)   #A sequence of (x, y [,z]) numeric coordinate
             polygon = Polygon(coordinates)
             area = polygon.area
             anno = dict(
