@@ -1,0 +1,5 @@
+workDir/
+idea/
+build/
+/**/.ipynb_checkpoints
+
