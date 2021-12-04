@@ -1,5 +1,6 @@
 workDir/
-idea/
+.eggs/
+.idea/
 build/
 /**/.ipynb_checkpoints
 
