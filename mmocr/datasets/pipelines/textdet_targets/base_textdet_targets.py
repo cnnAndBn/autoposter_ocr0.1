@@ -134,15 +134,15 @@ class BaseTextDetTargets:
                 if ignore_tags is not None:
                     ignore_tags[text_ind] = True
                 continue
-            # cv2.fillPoly(text_kernel, [shrinked.astype(np.int32)],
-            #              text_ind + 1)   #最后一个参数是pixel value, 这里相当于给每个instance的mask上的所有像素设置为text_ind+1
+            cv2.fillPoly(text_kernel, [shrinked.astype(np.int32)],
+                         text_ind + 1)   #最后一个参数是pixel value, 这里相当于给每个instance的mask上的所有像素设置为text_ind+1
 
             #for debug
-            cv2.fillPoly(text_kernel, [shrinked.astype(np.int32)],
-                         255)  # 最后一个参数是pixel value？
-            cv2.fillPoly(origin,[instance],255)
-            cv2.imwrite('fillPoly.png',text_kernel)
-            cv2.imwrite('origin.png',origin)
+            #cv2.fillPoly(text_kernel, [shrinked.astype(np.int32)],
+            #             255)  # 最后一个参数是pixel value？
+            #cv2.fillPoly(origin,[instance],255)
+            #cv2.imwrite('fillPoly.png',text_kernel)
+            #cv2.imwrite('origin.png',origin)
 
 
         return text_kernel, ignore_tags

@@ -101,7 +101,7 @@ data = dict(
         img_prefix=data_root + '/image/val',
         pipeline=test_pipeline))
 
-evaluation = dict(interval=10, metric='hmean-iou')
+evaluation = dict(interval=1, metric='hmean-iou')
 
 
 # optimizer
